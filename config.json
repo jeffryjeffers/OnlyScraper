@@ -1,0 +1,16 @@
+{
+  "types": {
+    "timeline": "Timeline",
+    "pinned": "Pinned",
+    "Paid": "Paid",
+    "PaidPreview": "PaidPreview",
+    "Highlights": "Highlights",
+    "Archived": "Archived",
+    "Message": "Message"
+   },
+  "mediaTypes": {
+   "images": "Images" ,
+    "videos": "Videos",
+    "audios": "Audios"
+  }
+}

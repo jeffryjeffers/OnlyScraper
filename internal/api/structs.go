@@ -248,6 +248,76 @@ type Subscriptions struct {
 	HasMore bool `json:"hasMore"`
 }
 
+type Messsages struct {
+	List []struct {
+		ResponseType string `json:"responseType"`
+		Text         string `json:"text"`
+		GiphyID      any    `json:"giphyId"`
+		LockedText   bool   `json:"lockedText"`
+		IsFree       bool   `json:"isFree"`
+		Price        any    `json:"price"`
+		IsMediaReady bool   `json:"isMediaReady"`
+		MediaCount   int    `json:"mediaCount"`
+		Media        []struct {
+			ID               int64  `json:"id"`
+			CanView          bool   `json:"canView"`
+			Type             string `json:"type"`
+			Src              string `json:"src"`
+			Preview          string `json:"preview"`
+			Thumb            string `json:"thumb"`
+			Locked           any    `json:"locked"`
+			Duration         int    `json:"duration"`
+			HasError         bool   `json:"hasError"`
+			SquarePreview    string `json:"squarePreview,omitempty"`
+			HasCustomPreview bool   `json:"hasCustomPreview,omitempty"`
+			VideoSources     struct {
+				Num240 any `json:"240"`
+				Num720 any `json:"720"`
+			} `json:"videoSources"`
+			Source struct {
+				Source string `json:"source"`
+			} `json:"source"`
+			Info struct {
+				Source struct {
+					Width  int `json:"width"`
+					Height int `json:"height"`
+					Size   int `json:"size"`
+				} `json:"source"`
+				Preview struct {
+					Width  int `json:"width"`
+					Height int `json:"height"`
+					Size   int `json:"size"`
+				} `json:"preview"`
+			} `json:"info"`
+		} `json:"media"`
+		Previews            []int64 `json:"previews"`
+		IsTip               bool    `json:"isTip"`
+		IsReportedByMe      bool    `json:"isReportedByMe"`
+		IsCouplePeopleMedia bool    `json:"isCouplePeopleMedia"`
+		QueueID             int64   `json:"queueId"`
+		FromUser            struct {
+			ID   int    `json:"id"`
+			View string `json:"_view"`
+		} `json:"fromUser"`
+		IsFromQueue        bool      `json:"isFromQueue"`
+		CanUnsendQueue     bool      `json:"canUnsendQueue"`
+		UnsendSecondsQueue int       `json:"unsendSecondsQueue"`
+		ID                 int64     `json:"id"`
+		IsOpened           bool      `json:"isOpened"`
+		IsNew              bool      `json:"isNew"`
+		CreatedAt          time.Time `json:"createdAt"`
+		ChangedAt          time.Time `json:"changedAt"`
+		CancelSeconds      int       `json:"cancelSeconds"`
+		IsLiked            bool      `json:"isLiked"`
+		CanPurchase        bool      `json:"canPurchase"`
+		CanPurchaseReason  string    `json:"canPurchaseReason"`
+		CanReport          bool      `json:"canReport"`
+		CanBePinned        bool      `json:"canBePinned"`
+		IsPinned           bool      `json:"isPinned"`
+	} `json:"list"`
+	HasMore bool `json:"hasMore"`
+}
+
 type Posts struct {
 	List []struct {
 		ResponseType    string    `json:"responseType"`
@@ -332,8 +402,8 @@ type Posts struct {
 				Num720 string `json:"720"`
 			} `json:"videoSources"`
 		} `json:"media"`
-		CanViewMedia bool  `json:"canViewMedia"`
-		Preview      []any `json:"preview"`
+		CanViewMedia bool    `json:"canViewMedia"`
+		Preview      []int64 `json:"preview"`
 	} `json:"list"`
 	HasMore    bool   `json:"hasMore"`
 	HeadMarker string `json:"headMarker"`
@@ -435,4 +505,5 @@ type Media struct {
 	URL     string
 	MediaID int
 	PostID  int
+	Type    string
 }

@@ -2,6 +2,7 @@ package actions
 
 import (
 	"OnlyScraper/internal/api"
+	"OnlyScraper/internal/config"
 	"OnlyScraper/internal/database"
 	"fmt"
 	"github.com/chelnak/ysmrr"
@@ -23,6 +24,7 @@ import (
 func ScrapeAction(c *cli.Context) error {
 	in := c.Context.Value("instance").(*api.OnlyFans)
 	logger := c.Context.Value("logger").(pterm.Logger)
+	cfg := c.Context.Value("config").(*config.Config)
 	f := c.String("model")
 	var models []string
 	if f == "" {
@@ -96,10 +98,10 @@ func ScrapeAction(c *cli.Context) error {
 		storiesSpinner.Complete()
 		var media []api.Media
 
-		media = append(media, pinnedPosts.ExtractMedia()...)
-		media = append(media, timelinePosts.ExtractMedia()...)
-		media = append(media, archivedPosts.ExtractMedia()...)
-		media = append(media, messages.ExtractMedia()...)
+		media = append(media, pinnedPosts.ExtractMedia(cfg.Types.Pinned, cfg.Types.Paid, cfg.Types.PaidPreview)...)
+		media = append(media, timelinePosts.ExtractMedia(cfg.Types.Timeline, cfg.Types.Paid, cfg.Types.PaidPreview)...)
+		media = append(media, archivedPosts.ExtractMedia(cfg.Types.Archived, cfg.Types.Paid, cfg.Types.PaidPreview)...)
+		media = append(media, messages.ExtractMedia(cfg.Types.Message, cfg.Types.Paid, cfg.Types.PaidPreview)...)
 
 		highlightDetailSpinner := sm.AddSpinner("Getting Highlight Details")
 		for _, h := range highlights.List {
@@ -109,11 +111,11 @@ func ScrapeAction(c *cli.Context) error {
 				continue
 			}
 			for _, story := range highlight.Stories {
-				media = append(media, story.ExtractMedia()...)
+				media = append(media, story.ExtractMedia(cfg.Types.Highlights)...)
 			}
 		}
 		for _, story := range stories {
-			media = append(media, story.ExtractMedia()...)
+			media = append(media, story.ExtractMedia(cfg.Types.Highlights)...)
 		}
 		highlightDetailSpinner.Complete()
 		sm.Stop()
@@ -169,7 +171,7 @@ func ScrapeAction(c *cli.Context) error {
 
 			for i := 0; i < threads; i++ {
 				wg.Add(1)
-				go downloadWorker(model, mediaChannel, done, &wg, logger, bars[i], db)
+				go downloadWorker(model, mediaChannel, done, &wg, logger, bars[i], db, cfg)
 			}
 
 			for _, m := range filtered {
@@ -191,7 +193,7 @@ func ScrapeAction(c *cli.Context) error {
 	return nil
 }
 
-func downloadWorker(model api.Profile, media <-chan api.Media, done chan<- bool, wg *sync.WaitGroup, logger pterm.Logger, bar *mpb.Bar, db *database.Database) {
+func downloadWorker(model api.Profile, media <-chan api.Media, done chan<- bool, wg *sync.WaitGroup, logger pterm.Logger, bar *mpb.Bar, db *database.Database, cfg *config.Config) {
 	for m := range media {
 		client := http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Get(m.URL)
@@ -206,19 +208,19 @@ func downloadWorker(model api.Profile, media <-chan api.Media, done chan<- bool,
 		switch {
 		case strings.Contains(contentType, "image/jpeg"):
 			fileExt = ".jpg"
-			dir = "output/" + model.Username + "/Pictures/"
+			dir = "output/" + model.Username + "/" + m.Type + "/" + cfg.MediaType.Images + "/"
 		case strings.Contains(contentType, "image/png"):
 			fileExt = ".png"
-			dir = "output/" + model.Username + "/Pictures/"
+			dir = "output/" + model.Username + "/" + m.Type + "/" + cfg.MediaType.Images + "/"
 		case strings.Contains(contentType, "image/gif"):
 			fileExt = ".gif"
-			dir = "output/" + model.Username + "/Videos/"
+			dir = "output/" + model.Username + "/" + m.Type + "/" + cfg.MediaType.Videos + "/"
 		case strings.Contains(contentType, "video/mp4"):
 			fileExt = ".mp4"
-			dir = "output/" + model.Username + "/Videos/"
+			dir = "output/" + model.Username + "/" + m.Type + "/" + cfg.MediaType.Videos + "/"
 		case strings.Contains(contentType, "audio/mpeg"):
 			fileExt = ".mp3"
-			dir = "output/" + model.Username + "/Audios/"
+			dir = "output/" + model.Username + "/" + m.Type + "/" + cfg.MediaType.Audios + "/"
 		default:
 			fileExt = "" // Unknown or non-media file type
 			dir = ""

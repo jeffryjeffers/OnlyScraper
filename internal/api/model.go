@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/valyala/fasthttp"
+	"reflect"
+	"slices"
 )
 
 func (in *OnlyFans) GetPinnedPosts(id int) (Posts, error) {
@@ -123,7 +125,7 @@ func (in *OnlyFans) GetArchivedPosts(id int, timestamp string) (Posts, error) {
 
 	return posts, nil
 }
-func (in *OnlyFans) GetMessages(id int, messageId int) (Posts, error) {
+func (in *OnlyFans) GetMessages(id int, messageId int64) (Messsages, error) {
 	var url string
 	if messageId == 0 {
 		url = fmt.Sprintf(MESSAGES_URL, id)
@@ -150,17 +152,17 @@ func (in *OnlyFans) GetMessages(id int, messageId int) (Posts, error) {
 
 	fasthttp.ReleaseRequest(req)
 	if err != nil {
-		return Posts{}, err
+		return Messsages{}, err
 	}
 	defer fasthttp.ReleaseResponse(resp)
-	var messages Posts
+	var messages Messsages
 	err = json.Unmarshal(resp.Body(), &messages)
 	if len(messages.List) == 0 {
 		return messages, nil
 	} else {
 		m, err := in.GetMessages(id, messages.List[len(messages.List)-1].ID)
 		if err != nil {
-			return Posts{}, err
+			return Messsages{}, err
 		}
 		messages.List = append(messages.List, m.List...)
 	}
@@ -257,7 +259,7 @@ func (in *OnlyFans) GetStories(id int) ([]Story, error) {
 	return stories, nil
 }
 
-func (s *Story) ExtractMedia() []Media {
+func (s *Story) ExtractMedia(baseType string) []Media {
 	var media []Media
 	if len(s.Media) == 0 {
 		return []Media{}
@@ -270,11 +272,12 @@ func (s *Story) ExtractMedia() []Media {
 			URL:     m.Files.Source.URL,
 			MediaID: int(m.ID),
 			PostID:  s.ID,
+			Type:    baseType,
 		})
 	}
 	return media
 }
-func (p *Posts) ExtractMedia() []Media {
+func (p *Posts) ExtractMedia(baseType, paid, paidPreview string) []Media {
 	var media []Media
 	for _, p := range p.List {
 		if len(p.Media) == 0 {
@@ -284,8 +287,46 @@ func (p *Posts) ExtractMedia() []Media {
 			if !m.CanView {
 				continue
 			}
-			media = append(media, Media{URL: m.Source.Source, MediaID: int(m.ID), PostID: p.ID})
+
+			if p.Price != nil && p.Price != 0.00 {
+				if slices.Contains(p.Preview, m.ID) {
+					media = append(media, Media{URL: m.Source.Source, MediaID: int(m.ID), PostID: p.ID, Type: paidPreview})
+				} else {
+					media = append(media, Media{URL: m.Source.Source, MediaID: int(m.ID), PostID: p.ID, Type: paid})
+				}
+			} else {
+				media = append(media, Media{URL: m.Source.Source, MediaID: int(m.ID), PostID: p.ID, Type: baseType})
+			}
 		}
+
 	}
+
+	return media
+}
+
+func (p *Messsages) ExtractMedia(baseType, paid, paidPreview string) []Media {
+	var media []Media
+	for _, p := range p.List {
+		if len(p.Media) == 0 {
+			continue
+		}
+		for _, m := range p.Media {
+			if !m.CanView {
+				continue
+			}
+			// for some reason preview is called preview**s** in messages
+			if p.Price != nil && !reflect.ValueOf(p.Price).IsZero() {
+				if slices.Contains(p.Previews, m.ID) {
+					media = append(media, Media{URL: m.Source.Source, MediaID: int(m.ID), PostID: int(p.ID), Type: paidPreview})
+				} else {
+					media = append(media, Media{URL: m.Source.Source, MediaID: int(m.ID), PostID: int(p.ID), Type: paid})
+				}
+			} else {
+				media = append(media, Media{URL: m.Source.Source, MediaID: int(m.ID), PostID: int(p.ID), Type: baseType})
+			}
+		}
+
+	}
+
 	return media
 }

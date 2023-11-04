@@ -38,7 +38,12 @@ func main() {
 			if err != nil {
 				return err
 			}
+			cfg, err := config.LoadConfig("config.json")
+			if err != nil {
+				return err
+			}
 
+			c.Context = context.WithValue(c.Context, "config", cfg)
 			c.Context = context.WithValue(c.Context, "logger", logger)
 			c.Context = context.WithValue(c.Context, "auth", auth)
 			c.Context = context.WithValue(c.Context, "instance", instance)
